@@ -1,32 +1,27 @@
-import * as core from "@mikro-orm/core";
-import { v4 } from "uuid";
+import type { Rel } from "@mikro-orm/core";
+import { Entity, ManyToOne, Property } from "@mikro-orm/core";
+import { BaseEntity } from "./base.entity";
 import { User } from "./user.entity";
 
-@core.Entity()
-export class Meal {
-  @core.PrimaryKey({ type: "uuid" })
-  _id: string;
-
-  @core.Property()
+@Entity()
+export class Meal extends BaseEntity {
+  @Property()
   name: string;
 
-  @core.Property()
+  @Property()
   imageUrl: string;
 
-  @core.Property()
+  @Property()
   carbs: number;
 
-  @core.Property()
+  @Property()
   insulin: number;
 
-  @core.Property()
+  @Property()
   description: string;
 
-  @core.Property()
-  lastUpdate: Date;
-
-  @core.ManyToOne({ entity: () => User })
-  user!: core.Rel<User>;
+  @ManyToOne({ entity: () => User })
+  user!: Rel<User>;
 
   constructor(
     name: string,
@@ -35,15 +30,14 @@ export class Meal {
     insulin: number,
     description: string,
     lastUpdate: Date,
-    user: core.Rel<User>
+    user: Rel<User>
   ) {
-    this._id = v4();
+    super();
     this.name = name;
     this.imageUrl = imageUrl;
     this.carbs = carbs;
     this.insulin = insulin;
     this.description = description;
-    this.lastUpdate = lastUpdate;
     this.user = user;
   }
 }

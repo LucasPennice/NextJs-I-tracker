@@ -1,19 +1,16 @@
-import * as core from "@mikro-orm/core";
-import { v4 } from "uuid";
+import { Collection, Entity, OneToMany } from "@mikro-orm/core";
+import { BaseEntity } from "./base.entity";
 import { Meal } from "./meal.entity";
 
-@core.Entity()
-export class User {
-  @core.PrimaryKey({ type: "uuid" })
-  _id: string;
-
-  @core.OneToMany(() => Meal, (meal) => meal.user, {
+@Entity()
+export class User extends BaseEntity {
+  @OneToMany(() => Meal, (meal) => meal.user, {
     orphanRemoval: true,
   })
-  meals = new core.Collection<Meal>(this);
+  meals = new Collection<Meal>(this);
 
   constructor() {
-    this._id = v4();
-    this.meals = new core.Collection<Meal>(this);
+    super();
+    this.meals = new Collection<Meal>(this);
   }
 }

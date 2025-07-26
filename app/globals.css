@@ -142,3 +142,11 @@
 html {
   background-color: #27272a;
 }
+
+.progressBar {
+  background-color: #2e7048;
+}
+
+.progressBar > div {
+  background-color: #04df72;
+}

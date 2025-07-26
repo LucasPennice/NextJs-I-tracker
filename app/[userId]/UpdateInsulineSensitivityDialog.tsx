@@ -17,13 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InsulinSensitivityEntry, UserDataOnly } from "@/entities/user.entity";
 import { DialogClose } from "@radix-ui/react-dialog";
-import { Droplets, Edit, X } from "lucide-react";
+import { Droplets, Edit, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-
-import { UserData } from "./page";
+import { useUserDataContext } from "./layout";
 
 export function UpdateInsulineSensitivityDialog({
   item,
@@ -32,12 +32,15 @@ export function UpdateInsulineSensitivityDialog({
   open,
   setActiveDialogId,
 }: {
-  item?: UserData["historialInsulinSensitivity"][number];
-  updateInsulinSensitivity: (value: number) => void;
+  item?: InsulinSensitivityEntry;
+  updateInsulinSensitivity: (value: number) => InsulinSensitivityEntry[];
   setActiveDialogId: (value: string | null) => void;
   close: () => void;
   open: boolean;
 }) {
+  const [loading, setLoading] = useState(false);
+  const { userData } = useUserDataContext();
+
   const formSchema = z.object({
     value: z
       .number()
@@ -65,7 +68,9 @@ export function UpdateInsulineSensitivityDialog({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
+    setLoading(true);
+
     e.preventDefault();
 
     const parse = formSchema.safeParse(formData);
@@ -77,11 +82,25 @@ export function UpdateInsulineSensitivityDialog({
         toast.warning(issue);
       }
 
+      setLoading(false);
+
       return;
     }
 
-    alert("acordate de ir al back a guardar la este nuevo valor");
-    updateInsulinSensitivity(formData.value);
+    try {
+      if (!userData) throw new Error("User data not found");
+
+      const updatedHistorical = updateInsulinSensitivity(formData.value);
+
+      await editInsulinSensitivity(userData._id, {
+        historialInsulinSensitivity: updatedHistorical,
+        insulinSensitivity: formData.value,
+      });
+    } catch (error) {
+      toast.error(`${error}`);
+    } finally {
+      setLoading(false);
+    }
 
     close();
   }
@@ -149,13 +168,19 @@ export function UpdateInsulineSensitivityDialog({
                     />
                   </div>
                 </div>
+
                 <Button
+                  disabled={loading}
                   type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white mt-6"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white mt-6 cursor-pointer"
                   size="lg"
                 >
-                  <Droplets className="h-4 w-4 mr-2" />
-                  Update Insulin Sensitivity
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Droplets className="h-4 w-4 mr-2" />
+                  )}
+                  {loading ? " Processing..." : " Update Insulin Sensitivity"}
                 </Button>
               </CardContent>
             </Card>
@@ -164,4 +189,23 @@ export function UpdateInsulineSensitivityDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+async function editInsulinSensitivity(
+  userId: string,
+  body: Pick<UserDataOnly, "historialInsulinSensitivity" | "insulinSensitivity">
+): Promise<UserDataOnly> {
+  const res = await fetch(`/api/user/${userId}/insulinSensitivity`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to update insulin sensitivity");
+  }
+
+  return await res.json();
 }

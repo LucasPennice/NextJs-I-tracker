@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,9 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { User } from "@/entities/user.entity";
 import {
   AlertTriangle,
-  Copy,
   Eye,
   EyeOff,
   Key,
@@ -27,6 +26,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "create">("create");
@@ -35,18 +35,6 @@ export default function AuthPage() {
   const [showId, setShowId] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const generateUserId = () => {
-    // Generate a secure random ID (in real app, this would be done server-side)
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let result = "";
-    for (let i = 0; i < 16; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-      if (i === 3 || i === 7 || i === 11) result += "-";
-    }
-    setGeneratedId(result);
-    setUserId(result);
-  };
 
   const copyToClipboard = async () => {
     try {
@@ -72,23 +60,22 @@ export default function AuthPage() {
     setIsLoading(true);
 
     // Simulate authentication process
-    setTimeout(() => {
-      if (mode === "login") {
-        // In real app, validate ID with backend
-        localStorage.setItem("userId", userId);
-        router.push(`/${userId}`);
-      } else {
-        // In real app, register new ID with backend
-        localStorage.setItem("userId", generatedId);
-        alert("New account created successfully!");
-      }
-      setIsLoading(false);
-    }, 1500);
-  };
+    if (mode === "login") {
+      // In real app, validate ID with backend
+      localStorage.setItem("userId", userId);
+      router.push(`/${userId}`);
+    } else {
+      try {
+        const newUser = await createUser();
 
-  const validateId = (id: string) => {
-    const pattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-    return pattern.test(id);
+        await localStorage.setItem("userId", newUser._id);
+
+        router.replace(`/${newUser._id}`);
+      } catch (error) {
+        toast.error("Failed to create user. Please try again.");
+      }
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -145,7 +132,7 @@ export default function AuthPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "login" ? (
+              {mode === "login" && (
                 <div className="space-y-2">
                   <Label htmlFor="userId" className="text-zinc-300">
                     Your ID
@@ -155,7 +142,7 @@ export default function AuthPage() {
                       id="userId"
                       type={showId ? "text" : "password"}
                       value={userId}
-                      onChange={(e) => setUserId(e.target.value.toUpperCase())}
+                      onChange={(e) => setUserId(e.target.value)}
                       placeholder="XXXX-XXXX-XXXX-XXXX"
                       className="bg-zinc-900 border-zinc-700 text-white pr-10"
                       required
@@ -172,77 +159,13 @@ export default function AuthPage() {
                       )}
                     </button>
                   </div>
-                  {userId && !validateId(userId) && (
-                    <p className="text-red-400 text-sm">
-                      ID format should be: XXXX-XXXX-XXXX-XXXX
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-zinc-300">Your New ID</Label>
-                    {generatedId ? (
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Input
-                            type={showId ? "text" : "password"}
-                            value={generatedId}
-                            readOnly
-                            className="bg-zinc-900 border-zinc-700 text-white pr-20"
-                          />
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                            <button
-                              type="button"
-                              onClick={copyToClipboard}
-                              className="p-1 text-zinc-400 hover:text-white"
-                              title="Copy ID"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setShowId(!showId)}
-                              className="p-1 text-zinc-400 hover:text-white"
-                              title="Toggle visibility"
-                            >
-                              {showId ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        {copied && (
-                          <Badge className="bg-green-900 text-green-300">
-                            ID copied to clipboard!
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        onClick={generateUserId}
-                        variant="outline"
-                        className="w-full bg-zinc-700 border-zinc-600 text-zinc-300 hover:bg-zinc-600"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Generate Secure ID
-                      </Button>
-                    )}
-                  </div>
                 </div>
               )}
 
               <Button
                 type="submit"
-                disabled={
-                  isLoading ||
-                  (mode === "login" && !validateId(userId)) ||
-                  (mode === "create" && !generatedId)
-                }
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={isLoading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white cursor-pointer"
               >
                 {isLoading ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -328,4 +251,20 @@ export default function AuthPage() {
       </div>
     </div>
   );
+}
+
+async function createUser(): Promise<User> {
+  const res = await fetch("/api/user", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (res.status !== 200) {
+    throw new Error("Failed to create user");
+  }
+  const result = await res.json();
+
+  return result;
 }

@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,27 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { NavigationMenu } from "@/components/ui/navigation-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { MealDataOnly } from "@/entities/meal.entity";
+import { InsulinSensitivityEntry, UserDataOnly } from "@/entities/user.entity";
+import { Image, ImageKitProvider } from "@imagekit/next";
 import { DialogClose } from "@radix-ui/react-dialog";
-import { PopoverClose } from "@radix-ui/react-popover";
 import Fuse from "fuse.js";
-import {
-  Droplet,
-  Droplets,
-  Edit,
-  FileWarning,
-  LogOutIcon,
-  Plus,
-  X,
-} from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Droplet, Droplets, Edit, FileWarning, X } from "lucide-react";
+import { useEffect, useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -50,11 +35,15 @@ import {
   XAxis,
 } from "recharts";
 import { toast } from "sonner";
-import { checkInsulinMissmatch, clearAllCookies } from "../utils";
+import { checkInsulinMissmatch } from "../utils";
 import { MutateFoodForm } from "./MutateFoodForm";
-import { SearchCombobox } from "./SearchCombobox";
 import { UpdateInsulineSensitivityDialog } from "./UpdateInsulineSensitivityDialog";
-import { Meal, userData } from "./page";
+import {
+  useActiveDialogContext,
+  useQueryContext,
+  useUserDataContext,
+} from "./layout";
+import { userData } from "./page";
 
 const chartConfig = {
   desktop: {
@@ -67,135 +56,65 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function Dashboard() {
-  const [activeDialogId, setActiveDialogId] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [meals, setMeals] = useState<Meal[]>(userData.meals);
-  const [query, setQuery] = useState("");
-  const [userInsulinSensitivity, setUserInsulinSensitivity] = useState(
-    userData.historialInsulinSensitivity
-  );
+export default function Dashboard({ userData }: { userData: UserDataOnly }) {
+  const { activeDialogId, setActiveDialogId } = useActiveDialogContext();
+  const { query } = useQueryContext();
+  const { setUserData } = useUserDataContext();
 
   const fuse = useMemo(
     () =>
-      new Fuse(meals, {
+      new Fuse(userData.meals, {
         keys: ["name"],
         threshold: 0.5,
       }),
-    [meals]
+    [userData.meals]
   );
 
-  const filteredMeals = query ? fuse.search(query).map((r) => r.item) : meals;
+  const filteredMeals = query
+    ? fuse.search(query).map((r) => r.item)
+    : userData.meals;
 
-  const updateMeal = (updated: Meal) => {
-    setMeals((prev) =>
-      prev.map((meal) => (meal.id === updated.id ? updated : meal))
-    );
+  const updateMeal = (updated: MealDataOnly) => {
+    setUserData((prev) => {
+      if (!prev) return null;
+
+      return {
+        ...prev,
+        meals: prev.meals.map((meal) =>
+          meal._id === updated._id ? updated : meal
+        ),
+      };
+    });
+
     toast.success("Meal updated successfully!");
   };
 
-  const addNewMeal = (newMeal: Meal) => {
-    setMeals((prev) => [...prev, newMeal]);
-    toast.success("Meal added successfully!");
+  const updateInsulinSensitivity = (
+    newEntry: InsulinSensitivityEntry
+  ): InsulinSensitivityEntry[] => {
+    let result: InsulinSensitivityEntry[] = [];
+    if (entryAlredyInToday(userData.historialInsulinSensitivity)) {
+      result = [...userData.historialInsulinSensitivity];
+      result[result.length - 1] = newEntry;
+    } else {
+      result = [...userData.historialInsulinSensitivity, newEntry];
+    }
+
+    setUserData((prev) => {
+      if (!prev) return null;
+
+      return {
+        ...prev,
+        insulinSensitivity: newEntry.value,
+        historialInsulinSensitivity: result,
+      };
+    });
+
+    return result;
   };
-
-  const router = useRouter();
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setQuery("");
-        setSearchOpen((open) => !open);
-      }
-    };
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
-      <NavigationMenu className="sticky top-0 h-14 bg-zinc-800 border-zinc-700 px-4 py-2 z-40">
-        <div className="w-screen flex items-center">
-          Hpña
-          <div className="flex-1"></div>
-          <SearchCombobox
-            meals={meals}
-            open={searchOpen}
-            setOpen={setSearchOpen}
-            query={query}
-            setQuery={setQuery}
-            userData={userData}
-          />
-          <div
-            className="text-muted-foreground text-sm bg-zinc-900 px-4 py-2 rounded-md mr-2 cursor-pointer hover:scale-95 transition-transform"
-            onClick={() => setSearchOpen(true)}
-          >
-            <span className="mr-4">Search</span>
-
-            <kbd className="bg-zinc-800 text-zinc-500 pointer-events-none inline-flex h-5 items-center gap-1 rounded  px-1.5 font-mono text-[10px] font-medium opacity-100 select-none">
-              <span className="text-xs">⌘</span>K
-            </kbd>
-          </div>
-          <Card
-            className="bg-green-500/30 border-none whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs hover:bg-green-400/40  h-9 px-4 py-2 has-[>svg]:px-3 cursor-pointer mr-2 w-[120px]"
-            onClick={() => setActiveDialogId("newMeal")}
-          >
-            <CardContent className="flex items-center justify-center gap-2">
-              <Plus className="h-4 w-4 text-green-400" />
-              <div className="text-md font-bold text-green-400">Add Meal</div>
-            </CardContent>
-          </Card>
-          <Dialog
-            open={activeDialogId === "newMeal"}
-            onOpenChange={(open) => {
-              setActiveDialogId(open ? "newMeal" : null);
-            }}
-          >
-            <DialogContent
-              showCloseButton={false}
-              className="p-0 m-0 border-none bg-transparent"
-            >
-              <DialogClose asChild>
-                <button className="absolute right-4 top-4 rounded-md bg-zinc-700 p-2 hover:bg-zinc-600 cursor-pointer">
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </DialogClose>
-              <DialogHeader className="hidden">
-                <DialogTitle></DialogTitle>
-                <DialogDescription></DialogDescription>
-              </DialogHeader>
-              <MutateFoodForm
-                close={() => setActiveDialogId(null)}
-                mutateMeal={addNewMeal}
-              />
-            </DialogContent>
-          </Dialog>
-          <Popover>
-            <PopoverTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3 bg-zinc-500/10 text-zinc-300 cursor-pointer mr-2">
-              <LogOutIcon />
-            </PopoverTrigger>
-            <PopoverContent className="flex flex-col gap-2 bg-zinc-800 border-zinc-700 text-white items-center">
-              <div>Confirm</div>
-              <div className="flex w-full">
-                <PopoverClose className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3 mr-2 bg-gray-500/10 text-white cursor-pointer flex-1">
-                  No
-                </PopoverClose>
-                <Button
-                  className="mr-2 bg-red-500/10 text-red-500 cursor-pointer flex-1"
-                  onClick={() => {
-                    clearAllCookies();
-                    router.push("/");
-                  }}
-                >
-                  Yes
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </NavigationMenu>
-
       <div className="container mx-auto py-8 px-4 md:px-6">
         {/* Stats Overview */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -208,28 +127,19 @@ export default function Dashboard() {
                 item={(() => {
                   const today = new Date().toISOString().slice(0, 10); // "2025-07-22"
 
-                  const item = userInsulinSensitivity.find(
+                  const item = userData.historialInsulinSensitivity.find(
                     (entry) =>
                       new Date(entry.date).toISOString().slice(0, 10) === today
                   );
 
                   return item;
                 })()}
-                updateInsulinSensitivity={(newValue: number) => {
-                  if (entryAlredyInToday(userInsulinSensitivity)) {
-                    const newArr = [...userInsulinSensitivity];
-                    newArr[newArr.length - 1] = {
-                      date: new Date(),
-                      value: newValue,
-                    };
-                    setUserInsulinSensitivity(newArr);
-                  } else {
-                    setUserInsulinSensitivity((prev) => [
-                      ...prev,
-                      { date: new Date(), value: newValue },
-                    ]);
-                  }
-                }}
+                updateInsulinSensitivity={(newValue: number) =>
+                  updateInsulinSensitivity({
+                    value: newValue,
+                    date: new Date(),
+                  })
+                }
               />
 
               <ChartContainer
@@ -237,7 +147,10 @@ export default function Dashboard() {
                 className="max-h-[200px] w-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart accessibilityLayer data={userInsulinSensitivity}>
+                  <BarChart
+                    accessibilityLayer
+                    data={userData.historialInsulinSensitivity}
+                  >
                     <CartesianGrid
                       vertical={false}
                       stroke="#353535" // Tailwind zinc-700
@@ -254,7 +167,7 @@ export default function Dashboard() {
                       tickMargin={10}
                       tick={{ fill: "#94b1b8" }}
                       axisLine={false}
-                      tickFormatter={(value) => value.toLocaleDateString()}
+                      tickFormatter={(_) => new Date().toLocaleDateString()}
                     />
                     <ChartTooltip
                       content={({ active, payload }) => {
@@ -295,7 +208,11 @@ export default function Dashboard() {
         {/* Meal Cards Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredMeals
-            .sort((a, b) => b.last_updated.getTime() - a.last_updated.getTime())
+            .sort(
+              (a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+            )
             .map((meal) => {
               const estimatedInsulin = (
                 meal.carbs / userData.insulinSensitivity
@@ -308,14 +225,14 @@ export default function Dashboard() {
 
               return (
                 <Card
-                  key={meal.id}
+                  key={meal._id}
                   className="bg-zinc-800 border-zinc-700 overflow-hidden hover:bg-zinc-750 transition-colors relative pt-0"
                 >
                   <Dialog
-                    key={`dialog_${meal.id}`}
-                    open={activeDialogId === meal.id}
+                    key={`dialog_${meal._id}`}
+                    open={activeDialogId === meal._id}
                     onOpenChange={(open) => {
-                      setActiveDialogId(open ? meal.id : null);
+                      setActiveDialogId(open ? meal._id : null);
                     }}
                   >
                     <DialogTrigger className="absolute right-4 top-4 z-30 cursor-pointer hover:scale-105 transition-transform">
@@ -337,6 +254,8 @@ export default function Dashboard() {
                         <DialogDescription></DialogDescription>
                       </DialogHeader>
                       <MutateFoodForm
+                        mode="editing"
+                        userId={userData._id}
                         close={() => setActiveDialogId(null)}
                         meal={meal}
                         mutateMeal={updateMeal}
@@ -346,13 +265,22 @@ export default function Dashboard() {
 
                   {/* Meal imageUrl */}
                   <div className="relative h-48 overflow-hidden">
-                    <Image
-                      width={300}
-                      height={300}
-                      src={meal.imageUrl || "/placeholder.svg"}
-                      alt={meal.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <ImageKitProvider urlEndpoint="https://ik.imagekit.io/golr2f0mv">
+                      <Image
+                        width={300}
+                        height={300}
+                        src={
+                          meal.imageUrl === ""
+                            ? "/placeholder.svg"
+                            : meal.imageUrl
+                        }
+                        alt={meal.name}
+                        blurDataURL="data:image/svg+xml;base64,L1Q]+w-;M{-;~qfQfQfQM{fQt7fQ"
+                        placeholder={"blur"}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </ImageKitProvider>
                   </div>
 
                   <CardHeader>

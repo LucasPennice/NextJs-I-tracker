@@ -9,22 +9,29 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Droplet, Save, Upload } from "lucide-react";
-import Image from "next/image";
+import { MealDataOnly } from "@/entities/meal.entity";
+import { Image, ImageKitProvider, upload } from "@imagekit/next";
+import imageCompression from "browser-image-compression";
+import { Droplet, RefreshCw, Save, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { v4 } from "uuid";
 import { z } from "zod";
-import { Meal } from "./page";
 
 export const MutateFoodForm = ({
+  userId,
   close,
   meal,
   mutateMeal,
+  mode,
 }: {
+  userId: string;
   close: () => void;
-  meal?: Meal;
-  mutateMeal: (newMeal: Meal) => void;
+  meal?: MealDataOnly;
+  mutateMeal: (newMeal: MealDataOnly) => void;
+  mode: "adding" | "editing";
 }) => {
   const formSchema = z.object({
     name: z.string().min(2).max(50),
@@ -55,7 +62,8 @@ export const MutateFoodForm = ({
           message: "Maximum of 4 decimal places allowed",
         }
       ),
-    image: z.file().or(z.null()).or(z.string()),
+    image: z.file().or(z.null()),
+    imageUrl: z.string().or(z.null()),
   });
 
   const [formData, setFormData] = useState<z.infer<typeof formSchema>>({
@@ -63,10 +71,12 @@ export const MutateFoodForm = ({
     description: meal?.description ?? "",
     carbs: meal?.carbs ?? 0,
     insulin: meal?.insulin ?? 0,
-    image: meal?.imageUrl ?? null,
+    image: null,
+    imageUrl: meal?.imageUrl ?? "/placeholder.svg",
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleInputChange = (
     field: keyof z.infer<typeof formSchema>,
@@ -75,22 +85,44 @@ export const MutateFoodForm = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData((prev) => ({ ...prev, image: file }));
+      const { signature, expire, token, publicKey } =
+        await imageUploadAuthenticator();
+
+      const uploadResponse = await upload({
+        file,
+        fileName: v4(),
+        signature,
+        token,
+        expire,
+        publicKey,
+        onProgress: (event) => {
+          setProgress((event.loaded / event.total) * 100);
+        },
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        image: file,
+        imageUrl: uploadResponse.filePath ?? null,
+      }));
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        // setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
+    setLoading(true);
+
     e.preventDefault();
 
     const parse = formSchema.safeParse(formData);
+    console.log(parse);
 
     if (parse.success === false) {
       const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
@@ -99,18 +131,40 @@ export const MutateFoodForm = ({
         toast.warning(issue);
       }
 
+      setLoading(false);
+
       return;
     }
 
-    alert(
-      "acordate de ir al back a guardar la comida y la imagen y conseguir el id"
-    );
-    mutateMeal({
-      id: meal?.id ?? `${Math.random()}`,
-      ...formData,
-      imageUrl: "",
-      last_updated: new Date(),
-    });
+    try {
+      if (mode === "editing") {
+        if (!meal) throw new Error("Meal not found in editing");
+
+        const editedMeal = await editMeal(meal?._id, {
+          name: formData.name,
+          description: formData.description,
+          carbs: formData.carbs,
+          insulin: formData.insulin,
+          imageUrl: formData.imageUrl ?? meal.imageUrl,
+        });
+
+        mutateMeal(editedMeal);
+      } else {
+        const newMeal = await createMeal(userId, {
+          name: formData.name,
+          description: formData.description,
+          carbs: formData.carbs,
+          insulin: formData.insulin,
+          imageUrl: formData.imageUrl ?? "/placeholder.svg",
+        });
+
+        mutateMeal(newMeal);
+      }
+    } catch (error) {
+      toast.error(`${error}`);
+    } finally {
+      setLoading(false);
+    }
 
     close();
   }
@@ -131,14 +185,18 @@ export const MutateFoodForm = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <Image
-                    width={300}
-                    height={300}
-                    src={imagePreview || "/placeholder.svg"}
-                    alt="Food preview"
-                    className="w-full h-48 object-cover rounded-md"
-                  />
-
+                  <ImageKitProvider urlEndpoint="https://ik.imagekit.io/golr2f0mv">
+                    <Image
+                      width={300}
+                      height={300}
+                      src={formData.imageUrl ?? "/placeholder.svg"}
+                      alt="Food preview"
+                      blurDataURL="data:image/svg+xml;base64,L1Q]+w-;M{-;~qfQfQfQM{fQt7fQ"
+                      placeholder={"blur"}
+                      className="w-full h-[300px] object-cover rounded-md"
+                      loading="lazy"
+                    />
+                  </ImageKitProvider>
                   <input
                     type="file"
                     accept="image/*"
@@ -154,6 +212,8 @@ export const MutateFoodForm = ({
                     <Upload className="h-4 w-4 mr-2" />
                     Take Photo or Upload Image
                   </Label>
+
+                  <Progress value={progress} className="progressBar" />
                 </div>
               </CardContent>
             </Card>
@@ -259,16 +319,93 @@ export const MutateFoodForm = ({
             </div>
 
             <Button
+              disabled={loading}
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-green-600 hover:bg-green-700 text-white cursor-pointer"
               size="lg"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Add Food Item
+              {loading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {loading ? " Processing..." : " Add Food Item"}
             </Button>
           </div>
         </form>
       </div>
     </div>
   );
+};
+
+async function createMeal(
+  userId: string,
+  body: Omit<MealDataOnly, "user" | "_id" | "createdAt" | "updatedAt">
+): Promise<MealDataOnly> {
+  const res = await fetch(`/api/user/${userId}/meal`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create user");
+  }
+
+  return await res.json();
+}
+
+async function editMeal(
+  mealId: string,
+  body: Omit<MealDataOnly, "user" | "_id" | "createdAt" | "updatedAt">
+): Promise<MealDataOnly> {
+  console.log(mealId);
+  const res = await fetch(`/api/meal/${mealId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create user");
+  }
+
+  return await res.json();
+}
+
+async function compressImage(file: File) {
+  const options = {
+    maxWidthOrHeight: 300,
+    maxSizeMB: 0.2, // ~200KB
+    useWebWorker: true,
+  };
+
+  return await imageCompression(file, options);
+}
+
+const imageUploadAuthenticator = async () => {
+  try {
+    // Perform the request to the upload authentication endpoint.
+    const response = await fetch("/api/upload-auth");
+    if (!response.ok) {
+      // If the server response is not successful, extract the error text for debugging.
+      const errorText = await response.text();
+      throw new Error(
+        `Request failed with status ${response.status}: ${errorText}`
+      );
+    }
+
+    // Parse and destructure the response JSON for upload credentials.
+    const data = await response.json();
+    const { signature, expire, token, publicKey } = data;
+    return { signature, expire, token, publicKey };
+  } catch (error) {
+    // Log the original error for debugging before rethrowing a new error.
+    console.error("Authentication error:", error);
+    throw new Error("Authentication request failed");
+  }
 };

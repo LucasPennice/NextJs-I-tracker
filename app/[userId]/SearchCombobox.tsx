@@ -10,7 +10,8 @@ import {
 import { DialogClose } from "@radix-ui/react-dialog";
 import { Droplet, Droplets, X } from "lucide-react";
 import { useEffect } from "react";
-import { Meal, UserData } from "./page";
+import { MealDataOnly } from "@/entities/meal.entity";
+import { UserDataOnly } from "@/entities/user.entity";
 
 export function SearchCombobox({
   meals,
@@ -20,12 +21,12 @@ export function SearchCombobox({
   setQuery,
   userData,
 }: {
-  meals: Meal[];
+  meals: MealDataOnly[];
   open: boolean;
   setOpen: (open: boolean) => void;
   query: string;
   setQuery: (query: string) => void;
-  userData: UserData;
+  userData: UserDataOnly;
 }) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -69,7 +70,7 @@ export function SearchCombobox({
             ).toFixed(4);
 
             return (
-              <CommandItem key={meal.id}>
+              <CommandItem key={meal._id}>
                 <div className="flex items-center w-full">
                   <span className="truncate max-w-[120px] sm:max-w-[300px]">
                     {meal.name}

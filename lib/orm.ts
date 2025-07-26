@@ -1,22 +1,15 @@
 // lib/orm.ts
-import { MongoHighlighter } from "@mikro-orm/mongo-highlighter";
-import { MikroORM, MongoDriver, Options } from "@mikro-orm/mongodb";
-import { TsMorphMetadataProvider } from "@mikro-orm/reflection";
-import "../envConfig";
 import { Meal } from "@/entities/meal.entity";
 import { User } from "@/entities/user.entity";
+import { MikroORM, Options } from "@mikro-orm/mongodb";
+import "../envConfig";
 
 let _orm: MikroORM;
 
 export const ormConfig: Options = {
   entities: [Meal, User],
-  // metadataProvider: TsMorphMetadataProvider,
   dbName: process.env.NODE_ENV === "development" ? "development" : "production",
-  // highlighter: new MongoHighlighter(),
   clientUrl: process.env.MONGO_CONNECTION_URI,
-  // driver: MongoDriver,
-  // dynamicImportProvider: (id) => import(id),
-  // debug: true,
 };
 
 export async function getORM(): Promise<MikroORM> {

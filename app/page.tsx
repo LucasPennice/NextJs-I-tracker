@@ -31,20 +31,8 @@ import { toast } from "sonner";
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "create">("create");
   const [userId, setUserId] = useState("");
-  const [generatedId, setGeneratedId] = useState("");
   const [showId, setShowId] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
 
   const router = useRouter();
 

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import {
   ChartContainer,
   ChartTooltip,
@@ -24,8 +25,19 @@ import { InsulinSensitivityEntry, UserDataOnly } from "@/entities/user.entity";
 import { Image, ImageKitProvider } from "@imagekit/next";
 import { DialogClose } from "@radix-ui/react-dialog";
 import Fuse from "fuse.js";
-import { Droplet, Droplets, Edit, FileWarning, X } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import NextImage from "next/image";
+import {
+  ChevronRight,
+  Clipboard,
+  Droplet,
+  Droplets,
+  Edit,
+  FileWarning,
+  Plus,
+  X,
+} from "lucide-react";
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -35,15 +47,14 @@ import {
   XAxis,
 } from "recharts";
 import { toast } from "sonner";
-import { checkInsulinMissmatch } from "../utils";
-import { MutateFoodForm } from "./MutateFoodForm";
-import { UpdateInsulineSensitivityDialog } from "./UpdateInsulineSensitivityDialog";
 import {
   useActiveDialogContext,
   useQueryContext,
   useUserDataContext,
-} from "./layout";
-import { userData } from "./page";
+} from "../context";
+import { checkInsulinMissmatch } from "../utils";
+import { MutateFoodForm } from "./MutateFoodForm";
+import { UpdateInsulineSensitivityDialog } from "./UpdateInsulineSensitivityDialog";
 
 const chartConfig = {
   desktop: {
@@ -113,9 +124,61 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
     return result;
   };
 
+  const params = useParams();
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(`${params.userId}`);
+      toast.success("Login key copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="flex justify-between gap-4">
+          <div
+            className="cursor-pointer bg-zinc-800 border-zinc-700 p-4 rounded-md mb-4 relative hover:scale-90 transition-all"
+            onClick={copyToClipboard}
+          >
+            <div className="bg-zinc-700 p-2 rounded-md absolute right-4">
+              <Clipboard color="white" size={12} />
+            </div>
+            <p className="text-md sm:text-xl font-medium mb-2 pr-8 w-[110px] sm:w-fit">
+              Your login key is:{" "}
+            </p>
+            <p className="opacity-45 text-xs truncate max-w-[100px] sm:max-w-[400px] sm:text-md">
+              {params.userId}
+            </p>
+          </div>
+
+          <a
+            href="https://www.patreon.com/LucasPennice"
+            target="_blank"
+            className="flex flex-1 gap-4 items-center justify-between cursor-pointer bg-zinc-800 border-zinc-700 rounded-md mb-4 py-4 relative h-auto border px-4"
+          >
+            <GlowingEffect
+              spread={40}
+              glow={true}
+              disabled={false}
+              proximity={120}
+              inactiveZone={0.01}
+            />
+
+            <div>
+              <p className="text-md sm:text-xl font-medium mb-2">
+                Support Insuline Tracker on Patreon
+              </p>
+              <p className="text-xs sm:text-md opacity-50">
+                Help us stay free and independent
+              </p>
+            </div>
+
+            <ChevronRight />
+          </a>
+        </div>
         {/* Stats Overview */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <Card className="bg-zinc-800 border-zinc-700 flex-1">
@@ -207,6 +270,22 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
 
         {/* Meal Cards Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {userData.meals.length === 0 && (
+            <div className="col-span-full text-center text-zinc-400 flex flex-col justify-center items-center gap-4">
+              <p className="font-medium text-xl">No meals found</p>
+              <Card
+                className="bg-green-500/30 border-none whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs hover:bg-green-400/40  h-9 px-4 py-2 has-[>svg]:px-3 cursor-pointer mr-2 w-[120px]"
+                onClick={() => setActiveDialogId("newMeal")}
+              >
+                <CardContent className="flex items-center justify-center gap-2">
+                  <Plus className="h-4 w-4 text-green-400" />
+                  <div className="text-md font-bold text-green-400">
+                    Add Meal
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
           {filteredMeals
             .sort(
               (a, b) =>
@@ -371,7 +450,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
 }
 
 const entryAlredyInToday = (
-  userInsulinSensitivity: typeof userData.historialInsulinSensitivity
+  userInsulinSensitivity: InsulinSensitivityEntry[]
 ) => {
   const today = new Date().toISOString().slice(0, 10); // "2025-07-22"
 

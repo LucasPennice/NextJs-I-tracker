@@ -23,7 +23,7 @@ import { Droplets, Edit, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useUserDataContext } from "./layout";
+import { useUserDataContext } from "../context";
 
 export function UpdateInsulineSensitivityDialog({
   item,

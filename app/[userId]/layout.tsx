@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -18,78 +17,23 @@ import {
 import { DialogClose } from "@radix-ui/react-dialog";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { LogOutIcon, Plus, SearchIcon, X } from "lucide-react";
+import Image from "next/image";
 import { clearAllCookies } from "../utils";
 import { MutateFoodForm } from "./MutateFoodForm";
 import { SearchCombobox } from "./SearchCombobox";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { MealDataOnly } from "@/entities/meal.entity";
 import { UserDataOnly } from "@/entities/user.entity";
-import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-
-// Define types for the contexts
-type ActiveDialogContextType = {
-  activeDialogId: string | null;
-  setActiveDialogId: React.Dispatch<React.SetStateAction<string | null>>;
-};
-
-type SearchContextType = {
-  searchOpen: boolean;
-  setSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-type QueryContextType = {
-  query: string;
-  setQuery: React.Dispatch<React.SetStateAction<string>>;
-};
-
-type UserDataContextType = {
-  userData: UserDataOnly | null;
-  setUserData: React.Dispatch<React.SetStateAction<UserDataOnly | null>>;
-};
-
-const ActiveDialogContext = createContext<ActiveDialogContextType | undefined>(
-  undefined
-);
-const SearchContext = createContext<SearchContextType | undefined>(undefined);
-const QueryContext = createContext<QueryContextType | undefined>(undefined);
-const UserDataContext = createContext<UserDataContextType | undefined>(
-  undefined
-);
-
-export const useActiveDialogContext = () => {
-  const context = useContext(ActiveDialogContext);
-  if (!context)
-    throw new Error(
-      "useActiveDialogContext must be used within AppContextProvider"
-    );
-  return context;
-};
-
-export const useSearchContext = () => {
-  const context = useContext(SearchContext);
-  if (!context)
-    throw new Error("useSearchContext must be used within AppContextProvider");
-  return context;
-};
-
-export const useQueryContext = () => {
-  const context = useContext(QueryContext);
-  if (!context)
-    throw new Error("useQueryContext must be used within AppContextProvider");
-  return context;
-};
-
-export const useUserDataContext = () => {
-  const context = useContext(UserDataContext);
-  if (!context)
-    throw new Error(
-      "useUserDataContext must be used within AppContextProvider"
-    );
-  return context;
-};
+import {
+  ActiveDialogContext,
+  QueryContext,
+  SearchContext,
+  UserDataContext,
+} from "../context";
 
 export default function RootLayout({
   children,

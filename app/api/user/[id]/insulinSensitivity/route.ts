@@ -2,21 +2,15 @@ import { User } from "@/entities/user.entity";
 import { getEM } from "@/lib/orm";
 import { NextResponse } from "next/server";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const asyncParams = await params;
+    const url = new URL(req.url);
+    const id = url.pathname.split("/").pop();
 
     const em = await getEM();
-    const user = await em.findOne(
-      User,
-      { _id: asyncParams.id },
-      { populate: ["meals"] }
-    );
+    const user = await em.findOne(User, { _id: id }, { populate: ["meals"] });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

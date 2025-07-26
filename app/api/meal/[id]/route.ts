@@ -2,17 +2,15 @@ import { getEM } from "@/lib/orm";
 import { Meal } from "@/entities/meal.entity";
 import { NextResponse } from "next/server";
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request) {
   try {
     const body = (await req.json()) as Meal;
     const em = await getEM();
 
-    const asyncParams = await params;
+    const url = new URL(req.url);
+    const id = url.pathname.split("/").pop();
 
-    const meal = await em.findOne(Meal, { _id: asyncParams.id });
+    const meal = await em.findOne(Meal, { _id: id });
 
     if (!meal) {
       return NextResponse.json({ error: "Meal not found" }, { status: 404 });

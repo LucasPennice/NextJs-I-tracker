@@ -9,15 +9,13 @@ export async function PUT(req: Request) {
     const em = await getEM();
 
     const url = new URL(req.url);
-    const id = url.pathname.split("/").pop();
+    const id = url.pathname.split("/")[3];
 
     const meal = await em.findOne(Meal, { _id: id });
 
     if (!meal) {
       return NextResponse.json({ error: "Meal not found" }, { status: 404 });
     }
-
-    console.log(meal, body);
 
     // Update fields if provided
     if (body.name !== undefined) meal.name = body.name;

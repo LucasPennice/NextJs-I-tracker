@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const url = new URL(req.url);
-    const id = url.pathname.split("/").pop();
+    const id = url.pathname.split("/")[3];
 
     const em = await getEM();
     const user = await em.findOne(User, { _id: id }, { populate: ["meals"] });

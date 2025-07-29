@@ -7,7 +7,6 @@ const config: Options = defineConfig({
   clientUrl: process.env.MONGO_CONNECTION_URI,
   dbName: process.env.NODE_ENV === "development" ? "development" : "production",
   entities: [Meal, User],
-  debug: true,
 });
 
 export default config;

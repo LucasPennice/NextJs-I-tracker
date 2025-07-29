@@ -44,7 +44,8 @@ export class Meal {
       carbs: this.carbs,
       insulin: this.insulin,
       description: this.description,
-      userId: this.user.getEntity()._id,
+      //@ts-expect-error que se yo
+      userId: this.user.id,
     };
   }
 

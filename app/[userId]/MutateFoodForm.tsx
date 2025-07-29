@@ -122,7 +122,6 @@ export const MutateFoodForm = ({
     e.preventDefault();
 
     const parse = formSchema.safeParse(formData);
-    console.log(parse);
 
     if (parse.success === false) {
       const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
@@ -361,7 +360,6 @@ async function editMeal(
   mealId: string,
   body: Omit<MealDataOnly, "user" | "_id" | "createdAt" | "updatedAt">
 ): Promise<MealDataOnly> {
-  console.log(mealId);
   const res = await fetch(`/api/meal/${mealId}`, {
     method: "PUT",
     headers: {

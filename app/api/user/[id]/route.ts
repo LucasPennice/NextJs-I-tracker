@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
-    const id = url.pathname.split("/").pop();
+    const id = url.pathname.split("/")[3];
 
     const user = await em.findOne(User, { _id: id }, { populate: ["meals"] });
 

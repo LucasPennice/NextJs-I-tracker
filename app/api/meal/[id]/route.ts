@@ -1,5 +1,6 @@
-import { getEM } from "@/lib/orm";
-import { Meal } from "@/entities/meal.entity";
+import "reflect-metadata";
+import { getEM } from "../../../../lib/orm";
+import { Meal } from "../../../../entities/Meal";
 import { NextResponse } from "next/server";
 
 export async function PUT(req: Request) {
@@ -15,6 +16,8 @@ export async function PUT(req: Request) {
     if (!meal) {
       return NextResponse.json({ error: "Meal not found" }, { status: 404 });
     }
+
+    console.log(meal, body);
 
     // Update fields if provided
     if (body.name !== undefined) meal.name = body.name;

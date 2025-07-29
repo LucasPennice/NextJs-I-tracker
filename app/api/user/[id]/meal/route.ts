@@ -1,6 +1,7 @@
-import { getEM } from "@/lib/orm";
-import { User } from "@/entities/user.entity";
-import { Meal } from "@/entities/meal.entity";
+import "reflect-metadata";
+import { getEM } from "../../../../../lib/orm";
+import { User } from "../../../../../entities/User";
+import { Meal } from "../../../../../entities/Meal";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
       body.carbs,
       body.insulin,
       body.description,
+      // @ts-expect-error te juro
       user
     );
 

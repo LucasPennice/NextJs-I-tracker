@@ -3,10 +3,11 @@ import {
   Entity,
   EntityDTO,
   OneToMany,
+  PrimaryKey,
   Property,
 } from "@mikro-orm/core";
-import { BaseEntity } from "./base.entity";
-import { Meal, MealDataOnly } from "./meal.entity";
+import { Meal, MealDataOnly } from "./Meal";
+import { v4 } from "uuid";
 
 export type InsulinSensitivityEntry = {
   date: Date;
@@ -18,7 +19,16 @@ export type UserDataOnly = Omit<EntityDTO<User>, "meals"> & {
 };
 
 @Entity()
-export class User extends BaseEntity {
+export class User {
+  @PrimaryKey({ type: "uuid" })
+  _id = v4();
+
+  @Property({ type: "date" })
+  createdAt = new Date();
+
+  @Property({ type: "date", onUpdate: () => new Date() })
+  updatedAt = new Date();
+
   @OneToMany(() => Meal, (meal) => meal.user, {
     orphanRemoval: true,
   })
@@ -29,7 +39,7 @@ export class User extends BaseEntity {
     { value: 11, date: new Date() },
   ];
 
-  @Property()
+  @Property({ type: "number" })
   insulinSensitivity: number;
 
   toJSON() {
@@ -43,8 +53,6 @@ export class User extends BaseEntity {
     };
   }
   constructor() {
-    super();
-    this.meals = new Collection<Meal>(this);
     this.insulinSensitivity = 11;
   }
 }

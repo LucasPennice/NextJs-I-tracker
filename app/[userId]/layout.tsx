@@ -1,19 +1,19 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { NavigationMenu } from "@/components/ui/navigation-menu";
+} from "../../components/ui/dialog";
+import { NavigationMenu } from "../../components/ui/navigation-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "../../components/ui/popover";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { LogOutIcon, Plus, SearchIcon, X } from "lucide-react";
@@ -22,9 +22,9 @@ import { clearAllCookies } from "../utils";
 import { MutateFoodForm } from "./MutateFoodForm";
 import { SearchCombobox } from "./SearchCombobox";
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { MealDataOnly } from "@/entities/meal.entity";
-import { UserDataOnly } from "@/entities/user.entity";
+import { Skeleton } from "../../components/ui/skeleton";
+import { MealDataOnly } from "../../entities/Meal";
+import { UserDataOnly } from "../../entities/User";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

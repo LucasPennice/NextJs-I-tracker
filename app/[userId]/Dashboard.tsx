@@ -1,31 +1,7 @@
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { GlowingEffect } from "@/components/ui/glowing-effect";
-import {
-  ChartContainer,
-  ChartTooltip,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { MealDataOnly } from "@/entities/meal.entity";
-import { InsulinSensitivityEntry, UserDataOnly } from "@/entities/user.entity";
 import { Image, ImageKitProvider } from "@imagekit/next";
 import { DialogClose } from "@radix-ui/react-dialog";
 import Fuse from "fuse.js";
-import NextImage from "next/image";
 import {
   ChevronRight,
   Clipboard,
@@ -47,6 +23,29 @@ import {
   XAxis,
 } from "recharts";
 import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "../../components/ui/chart";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import { GlowingEffect } from "../../components/ui/glowing-effect";
+import { MealDataOnly } from "../../entities/Meal";
+import { InsulinSensitivityEntry, UserDataOnly } from "../../entities/User";
 import {
   useActiveDialogContext,
   useQueryContext,

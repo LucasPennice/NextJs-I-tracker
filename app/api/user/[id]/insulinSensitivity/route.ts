@@ -1,5 +1,6 @@
-import { User } from "@/entities/user.entity";
-import { getEM } from "@/lib/orm";
+import "reflect-metadata";
+import { User } from "../../../../../entities/User";
+import { getEM } from "../../../../../lib/orm";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {

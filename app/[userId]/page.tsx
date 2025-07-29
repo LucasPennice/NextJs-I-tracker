@@ -1,7 +1,7 @@
 "use client";
-import { CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { UserDataOnly } from "@/entities/user.entity";
+import { CardContent } from "../../components/ui/card";
+import { Skeleton } from "../../components/ui/skeleton";
+import { UserDataOnly } from "../../entities/User";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

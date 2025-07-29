@@ -3,18 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
+  "mikro-orm": {
+    "useTsNode": true,
+    "tsConfigPath": "./tsconfig.orm.json",
+    "configPaths": [
+      "./config/mikro-orm.ts"
+    ]
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@imagekit/next": "^2.1.2",
-    "@mikro-orm/core": "6.3.13",
-    "@mikro-orm/mongo-highlighter": "^1.0.0",
-    "@mikro-orm/mongodb": "6.3.13",
-    "@mikro-orm/reflection": "6.3.13",
+    "@mikro-orm/cli": "^6.4.16",
+    "@mikro-orm/core": "^6.4.16",
+    "@mikro-orm/mongodb": "^6.4.16",
     "@next/env": "^15.4.3",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -38,9 +44,11 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.60.0",
     "recharts": "2.15.4",
+    "reflect-metadata": "^0.2.2",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "ts-morph": "^26.0.0",
+    "ts-node": "^10.9.2",
     "uuid": "^11.1.0",
     "zod": "^4.0.5"
   },
@@ -55,14 +63,5 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "overrides": {
-      "mongodb": "6.18.0",
-      "ts-morph": "26.0.0"
-    }
-  },
-  "engines": {
-    "node": "22.14.0"
   }
 }

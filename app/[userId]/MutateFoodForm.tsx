@@ -1,17 +1,17 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
-import { MealDataOnly } from "@/entities/meal.entity";
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Progress } from "../../components/ui/progress";
+import { Textarea } from "../../components/ui/textarea";
+import { MealDataOnly } from "../../entities/Meal";
 import { Image, ImageKitProvider, upload } from "@imagekit/next";
 import imageCompression from "browser-image-compression";
 import { Droplet, RefreshCw, Save, Upload } from "lucide-react";

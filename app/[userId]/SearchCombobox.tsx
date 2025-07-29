@@ -1,17 +1,17 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../../components/ui/badge";
 import {
   CommandDialog,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "../../components/ui/command";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { Droplet, Droplets, X } from "lucide-react";
 import { useEffect } from "react";
-import { MealDataOnly } from "@/entities/meal.entity";
-import { UserDataOnly } from "@/entities/user.entity";
+import { MealDataOnly } from "../../entities/Meal";
+import { UserDataOnly } from "../../entities/User";
 
 export function SearchCombobox({
   meals,

@@ -1,4 +1,4 @@
-import { UserDataOnly } from "@/entities/user.entity";
+import { UserDataOnly } from "../entities/User";
 import { createContext, useContext } from "react";
 
 // Define types for the contexts

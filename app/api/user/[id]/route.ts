@@ -1,6 +1,6 @@
-// app/api/user/[id]/route.ts
-import { getEM } from "@/lib/orm";
-import { User } from "@/entities/user.entity";
+import "reflect-metadata";
+import { getEM } from "../../../../lib/orm";
+import { User } from "../../../../entities/User";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {

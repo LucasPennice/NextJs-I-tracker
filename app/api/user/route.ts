@@ -1,7 +1,7 @@
+import "reflect-metadata";
 import { NextResponse } from "next/server";
-import { getEM } from "@/lib/orm";
-import { User } from "@/entities/user.entity";
-import { wrap } from "@mikro-orm/core";
+import { User } from "../../../entities/User";
+import { getEM } from "../../../lib/orm";
 
 export async function POST() {
   try {

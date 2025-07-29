@@ -1,29 +1,38 @@
-import type { EntityDTO, Rel } from "@mikro-orm/core";
-import { Entity, ManyToOne, Property } from "@mikro-orm/core";
-import { BaseEntity } from "./base.entity";
-import { User } from "./user.entity";
+import type { EntityDTO, Reference } from "@mikro-orm/core";
+import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
+import { v4 } from "uuid";
+import { User } from "./User";
 
 export type MealDataOnly = EntityDTO<Meal>;
 
 @Entity()
-export class Meal extends BaseEntity {
-  @Property()
+export class Meal {
+  @PrimaryKey({ type: "uuid" })
+  _id = v4();
+
+  @Property({ type: "date" })
+  createdAt = new Date();
+
+  @Property({ type: "date", onUpdate: () => new Date() })
+  updatedAt = new Date();
+
+  @Property({ type: "string" })
   name: string;
 
-  @Property()
+  @Property({ type: "string" })
   imageUrl: string;
 
-  @Property()
+  @Property({ type: "number" })
   carbs: number;
 
-  @Property()
+  @Property({ type: "number" })
   insulin: number;
 
-  @Property()
+  @Property({ type: "string" })
   description: string;
 
   @ManyToOne({ entity: () => User })
-  user!: Rel<User>;
+  user!: Reference<User>;
 
   toJSON() {
     return {
@@ -35,7 +44,7 @@ export class Meal extends BaseEntity {
       carbs: this.carbs,
       insulin: this.insulin,
       description: this.description,
-      userId: this.user?._id,
+      userId: this.user.getEntity()._id,
     };
   }
 
@@ -45,9 +54,8 @@ export class Meal extends BaseEntity {
     carbs: number,
     insulin: number,
     description: string,
-    user: Rel<User>
+    user: Reference<User>
   ) {
-    super();
     this.name = name;
     this.imageUrl = imageUrl;
     this.carbs = carbs;

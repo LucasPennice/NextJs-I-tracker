@@ -1,6 +1,6 @@
-// File: app/api/upload-auth/route.ts
+import "reflect-metadata";
+//@ts-expect-error asda
 import { getUploadAuthParams } from "@imagekit/next/server";
-import { v4 } from "uuid";
 
 export async function GET() {
   // Your application logic to authenticate the user

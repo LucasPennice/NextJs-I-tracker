@@ -1,12 +1,12 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "../../components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { InsulinSensitivityEntry, UserDataOnly } from "@/entities/user.entity";
+} from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { InsulinSensitivityEntry, UserDataOnly } from "../../entities/User";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { Droplets, Edit, RefreshCw, X } from "lucide-react";
 import { useState } from "react";

@@ -35,9 +35,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(user.toJSON(), { status: 200 });
   } catch (error) {
-    console.error("Error updating insuline sensitivity:", error);
+    console.error("Error updating insulin sensitivity:", error);
     return NextResponse.json(
-      { error: "Failed to update insuline sensitivity" },
+      { error: "Failed to update insulin sensitivity" },
       { status: 500 }
     );
   }

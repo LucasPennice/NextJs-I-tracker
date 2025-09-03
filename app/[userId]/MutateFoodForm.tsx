@@ -1,4 +1,11 @@
 "use client";
+import { Image, ImageKitProvider, upload } from "@imagekit/next";
+import imageCompression from "browser-image-compression";
+import { Droplet, RefreshCw, Save, Upload } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { v4 } from "uuid";
+import { z } from "zod";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -10,72 +17,70 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Progress } from "../../components/ui/progress";
-import { Textarea } from "../../components/ui/textarea";
-import { MealDataOnly } from "../../entities/Meal";
-import { Image, ImageKitProvider, upload } from "@imagekit/next";
-import imageCompression from "browser-image-compression";
-import { Droplet, RefreshCw, Save, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { v4 } from "uuid";
-import { z } from "zod";
+import { Meal, MealDataOnly } from "../../entities/Meal";
 
-export const MutateFoodForm = ({
-  userId,
-  close,
-  meal,
-  mutateMeal,
-  mode,
-  userBaselineSensitivity,
-}: {
-  userId: string;
-  close: () => void;
-  meal?: MealDataOnly;
-  mutateMeal: (newMeal: MealDataOnly) => void;
-  mode: "adding" | "editing";
-  userBaselineSensitivity: number;
-}) => {
-  const formSchema = z.object({
-    name: z.string().min(2).max(50),
-    description: z.string().min(0).max(100),
-    carbs: z
-      .number()
-      .min(1, "Must be a positive number greater than 0")
-      .max(1000, "Cannot exceed 1000g")
-      .refine(
-        (val) => {
-          const decimalPart = val.toString().split(".")[1];
-          return !decimalPart || decimalPart.length <= 2;
-        },
-        {
-          message: "Maximum of 2 decimal places allowed",
-        }
-      ),
-    insulin: z
-      .number()
-      .min(1, "Must be a positive number greater than 0")
-      .max(100, "Cannot exceed 100 units")
-      .refine(
-        (val) => {
-          const decimalPart = val.toString().split(".")[1];
-          return !decimalPart || decimalPart.length <= 4;
-        },
-        {
-          message: "Maximum of 4 decimal places allowed",
-        }
-      ),
-    image: z.file().or(z.null()),
-    imageUrl: z.string().or(z.null()),
-  });
+const formSchema = z.object({
+  name: z.string().min(2).max(50),
+  description: z.string().min(0).max(100),
+  carbs: z
+    .number()
+    .min(0, "Must be a positive number")
+    .max(1000, "Cannot exceed 1000g")
+    .refine(
+      (val) => {
+        const decimalPart = val.toString().split(".")[1];
+        return !decimalPart || decimalPart.length <= 2;
+      },
+      {
+        message: "Maximum of 2 decimal places allowed",
+      }
+    ),
+  insulin: z
+    .number()
+    .min(1, "Must be a positive number greater than 0")
+    .max(100, "Cannot exceed 100 units")
+    .refine(
+      (val) => {
+        const decimalPart = val.toString().split(".")[1];
+        return !decimalPart || decimalPart.length <= 4;
+      },
+      {
+        message: "Maximum of 4 decimal places allowed",
+      }
+    ),
+  image: z.file().or(z.null()),
+  imageUrl: z.string().or(z.null()),
+});
 
-  const [formData, setFormData] = useState<z.infer<typeof formSchema>>({
+export function defaultMutateFormData(meal: MealDataOnly) {
+  return {
     name: meal?.name ?? "",
     description: meal?.description ?? "",
     carbs: meal?.carbs ?? 0,
     insulin: meal?.insulin ?? 0,
     image: null,
     imageUrl: meal?.imageUrl ?? "/placeholder.svg",
-  });
+  };
+}
+
+export const MutateFoodForm = ({
+  userId,
+  close,
+  meal,
+  onSuccessfulMutationRun,
+  mode,
+  userBaselineSensitivity,
+}: {
+  userId: string;
+  close: () => void;
+  meal?: MealDataOnly;
+  onSuccessfulMutationRun: (newMeal: MealDataOnly) => void;
+  mode: "adding" | "editing";
+  userBaselineSensitivity: number;
+}) => {
+  const [formData, setFormData] = useState<z.infer<typeof formSchema>>(
+    defaultMutateFormData(meal)
+  );
 
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -119,59 +124,18 @@ export const MutateFoodForm = ({
   };
 
   async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
 
-    e.preventDefault();
+    await mutateMeal(formData, onSuccessfulMutationRun, { mode, meal, userId });
 
-    const parse = formSchema.safeParse(formData);
-
-    if (parse.success === false) {
-      const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
-
-      for (const issue of issues) {
-        toast.warning(issue);
-      }
-
-      setLoading(false);
-
-      return;
-    }
-
-    try {
-      if (mode === "editing") {
-        if (!meal) throw new Error("Meal not found in editing");
-
-        const editedMeal = await editMeal(meal?._id, {
-          name: formData.name,
-          description: formData.description,
-          carbs: formData.carbs,
-          insulin: formData.insulin,
-          imageUrl: formData.imageUrl ?? meal.imageUrl,
-        });
-
-        mutateMeal(editedMeal);
-      } else {
-        const newMeal = await createMeal(userId, {
-          name: formData.name,
-          description: formData.description,
-          carbs: formData.carbs,
-          insulin: formData.insulin,
-          imageUrl: formData.imageUrl ?? "/placeholder.svg",
-        });
-
-        mutateMeal(newMeal);
-      }
-    } catch (error) {
-      toast.error(`${error}`);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
 
     close();
   }
 
   return (
-    <div className="rounded-md max-h-screen overflow-y-scroll bg-zinc-900 text-zinc-100 py-8">
+    <div className="rounded-md overflow-y-scroll max-h-screen bg-zinc-900 text-zinc-100 py-8">
       <div className="container mx-auto px-4 md:px-6 max-w-4xl">
         <h1 className="text-2xl font-bold mb-2 text-white">Add New Food</h1>
 
@@ -283,7 +247,7 @@ export const MutateFoodForm = ({
 
                   <div>
                     <Label htmlFor="carbs" className="text-zinc-300">
-                      Carbohydrates (g) *
+                      Carbohydrates (g) (leave empty if don't know)
                     </Label>
                     <Input
                       id="carbs"
@@ -302,7 +266,6 @@ export const MutateFoodForm = ({
                         padding: "24px 16px",
                       }}
                       className="bg-zinc-900/50 border-none text-white font-bold"
-                      required
                     />
                   </div>
                 </CardContent>
@@ -408,4 +371,56 @@ function scrollOnFocus(e) {
       block: "center",
     });
   }, 300);
+}
+
+export async function mutateMeal(
+  formData: z.infer<typeof formSchema>,
+  onSuccessfulMutationRun: (newMeal: MealDataOnly) => void,
+  data: {
+    mode: "editing" | "adding";
+    meal?: MealDataOnly;
+    userId?: string;
+  }
+) {
+  try {
+    const parse = formSchema.safeParse(formData);
+
+    if (parse.success === false) {
+      const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
+
+      for (const issue of issues) {
+        toast.warning(issue);
+      }
+
+      return;
+    }
+
+    if (data.mode === "editing") {
+      if (!data.meal) throw new Error("Meal not found in editing");
+
+      const editedMeal = await editMeal(data.meal?._id, {
+        name: formData.name,
+        description: formData.description,
+        carbs: formData.carbs,
+        insulin: formData.insulin,
+        imageUrl: formData.imageUrl ?? data.meal.imageUrl,
+      });
+
+      return onSuccessfulMutationRun(editedMeal);
+    }
+
+    if (!data.userId) throw new Error("UserID not found in adding meal");
+
+    const newMeal = await createMeal(data.userId, {
+      name: formData.name,
+      description: formData.description,
+      carbs: formData.carbs,
+      insulin: formData.insulin,
+      imageUrl: formData.imageUrl ?? "/placeholder.svg",
+    });
+
+    onSuccessfulMutationRun(newMeal);
+  } catch (error) {
+    toast.error(`${error}`);
+  }
 }

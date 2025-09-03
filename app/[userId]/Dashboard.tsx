@@ -10,6 +10,8 @@ import {
   Edit,
   FileWarning,
   Plus,
+  RefreshCw,
+  Save,
   X,
 } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -47,16 +49,25 @@ import { GlowingEffect } from "../../components/ui/glowing-effect";
 import { MealDataOnly } from "../../entities/Meal";
 import { InsulinSensitivityEntry, UserDataOnly } from "../../entities/User";
 import {
+  ActiveDialogContextType,
   useActiveDialogContext,
   useQueryContext,
   useUserDataContext,
 } from "../context";
 import { checkInsulinMissmatch } from "../utils";
-import { MutateFoodForm } from "./MutateFoodForm";
-import { UpdateInsulineSensitivityDialog } from "./UpdateInsulineSensitivityDialog";
+import {
+  MutateFoodForm,
+  defaultMutateFormData,
+  mutateMeal,
+} from "./MutateFoodForm";
+import {
+  UpdateInsulinSensitivityDialog,
+  updateInsulinSensitivity,
+} from "./UpdateInsulineSensitivityDialog";
 import { Badge } from "../../components/ui/badge";
 import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
 import clsx from "clsx";
+import { Button } from "../../components/ui/button";
 
 const chartConfig = {
   desktop: {
@@ -70,7 +81,8 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function Dashboard({ userData }: { userData: UserDataOnly }) {
-  const { activeDialogId, setActiveDialogId } = useActiveDialogContext();
+  const activeDialogueContext = useActiveDialogContext();
+  const { activeDialogId, setActiveDialogId } = activeDialogueContext;
   const { query } = useQueryContext();
   const { setUserData } = useUserDataContext();
   const [excerciseTiming, setExcerciseTiming] = useState<
@@ -90,7 +102,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
     ? fuse.search(query).map((r) => r.item)
     : userData.meals;
 
-  const updateMeal = (updated: MealDataOnly) => {
+  const updateMealLocally = (updated: MealDataOnly) => {
     setUserData((prev) => {
       if (!prev) return null;
 
@@ -140,6 +152,12 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
     }
   };
 
+  const updateInsulinSensitivityLocally = (newValue: number) =>
+    updateInsulinSensitivity({
+      value: newValue,
+      date: new Date(),
+    });
+
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <div className="container mx-auto py-8 px-4 md:px-6">
@@ -174,7 +192,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
 
             <div>
               <p className="text-md sm:text-xl font-medium mb-2">
-                Support Insuline Tracker on Patreon
+                Support Insulin Tracker on Patreon
               </p>
               <p className="text-xs sm:text-md opacity-50">
                 Help us stay free and independent
@@ -188,7 +206,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <Card className="bg-zinc-800 border-zinc-700 flex-1">
             <CardContent className="p-4 text-center relative">
-              <UpdateInsulineSensitivityDialog
+              <UpdateInsulinSensitivityDialog
                 open={activeDialogId === "insulinSensitivity"}
                 setActiveDialogId={setActiveDialogId}
                 close={() => setActiveDialogId(null)}
@@ -202,12 +220,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
 
                   return item;
                 })()}
-                updateInsulinSensitivity={(newValue: number) =>
-                  updateInsulinSensitivity({
-                    value: newValue,
-                    date: new Date(),
-                  })
-                }
+                runOnSuccessfulUpdate={updateInsulinSensitivityLocally}
               />
 
               <ChartContainer
@@ -274,7 +287,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                 <NumberFlowGroup>
                   <div className="flex-1/3 flex flex-col items-center">
                     <NumberFlow
-                      className="text-white font-black text-[76px] sm:text-[96px]"
+                      className="text-white font-black text-[76px] sm:text-[52px] md:text-[64px] lg:text-[72px]"
                       value={getExcercisedAffectedSensitivity(
                         userData.historialInsulinSensitivity.findLast((x) => x)
                           .value,
@@ -363,20 +376,39 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                 )
               );
 
-              const estimatedInsulin = (
+              const excerciseInffluencedEstimatedInsulin = (
                 meal.carbs / excerciseAffectedSensitivity
               ).toFixed(4);
 
-              const insulinMissmatch = checkInsulinMissmatch(
-                parseFloat(estimatedInsulin),
-                meal.insulin
-              );
+              const baselineEstimatedInsulin = (
+                meal.carbs / baselineSensitivity
+              ).toFixed(4);
+
+              const insulinMissmatch =
+                meal.carbs === 0 ||
+                checkInsulinMissmatch(
+                  parseFloat(baselineEstimatedInsulin),
+                  meal.insulin
+                );
+
+              const showUpdatePattern =
+                meal.insulin > 0 &&
+                meal.carbs / meal.insulin - baselineSensitivity > 1;
 
               return (
                 <Card
                   key={meal._id}
                   className="bg-zinc-800 border-zinc-700 overflow-hidden hover:bg-zinc-750 transition-colors relative pt-0"
                 >
+                  {showUpdatePattern && (
+                    <UpdatePatternWithMealDialogue
+                      meal={meal}
+                      userData={userData}
+                      runOnSuccessfulUpdate={updateInsulinSensitivityLocally}
+                      activeDialogueState={activeDialogueContext}
+                    />
+                  )}
+
                   <Dialog
                     key={`dialog_${meal._id}`}
                     open={activeDialogId === meal._id}
@@ -407,7 +439,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                         userId={userData._id}
                         close={() => setActiveDialogId(null)}
                         meal={meal}
-                        mutateMeal={updateMeal}
+                        onSuccessfulMutationRun={updateMealLocally}
                         userBaselineSensitivity={baselineSensitivity}
                       />
                     </DialogContent>
@@ -434,12 +466,9 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                   </div>
 
                   <CardHeader>
-                    <CardTitle className="text-white text-lg">
+                    <CardTitle className="text-white text-xl font-bold">
                       {meal.name}
                     </CardTitle>
-                    <CardDescription className="text-zinc-400 text-sm">
-                      {meal.description}
-                    </CardDescription>
                   </CardHeader>
 
                   <CardContent className="pt-0">
@@ -453,10 +482,19 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                           <p className="text-sm text-zinc-400">Carbs</p>
                         </div>
 
-                        <div>
-                          <span className="text-2xl font-bold text-white">
-                            {meal.carbs}
-                          </span>
+                        <div className="flex items-baseline">
+                          <div>
+                            {meal.carbs !== 0 ? (
+                              <NumberFlow
+                                className="text-2xl font-bold text-white inline"
+                                value={meal.carbs === 0 ? "?" : meal.carbs}
+                              />
+                            ) : (
+                              <span className="text-2xl font-bold text-white">
+                                ?
+                              </span>
+                            )}
+                          </div>
                           <span className="text-md font-bold text-white/50 ml-1">
                             g
                           </span>
@@ -492,7 +530,9 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
 
                         <div>
                           <span className="text-2xl font-bold text-white">
-                            {estimatedInsulin}
+                            {parseFloat(
+                              excerciseInffluencedEstimatedInsulin
+                            ).toFixed(2)}
                           </span>
                           <span className="text-md font-bold text-white/50 ml-1">
                             u
@@ -502,12 +542,19 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                     </div>
 
                     {insulinMissmatch && (
-                      <div className="bg-orange-700/20 p-3 rounded-md items-center flex gap-4 mt-4">
-                        <FileWarning className="h-6 w-6 text-orange-400" />
-                        <div className="text-orange-400 flex-1">
-                          There&apos;s a discrepancy between the estimated
-                          insulin and the last recorded value
+                      <div className="bg-orange-700/20 p-3 rounded-md mt-4">
+                        <div className="items-center flex gap-4">
+                          <FileWarning className="h-6 w-6 text-orange-400" />
+                          <div className="text-orange-400 flex-1">
+                            There&apos;s a discrepancy between the applied
+                            insulin and the meal&apos;s carbs
+                          </div>
                         </div>
+                        <UpdateCarbsButton
+                          newCarbValue={meal.insulin * baselineSensitivity}
+                          meal={meal}
+                          updateMealLocally={updateMealLocally}
+                        />
                       </div>
                     )}
                   </CardContent>
@@ -585,3 +632,130 @@ function getExcercisedAffectedSensitivity(
     100
   ).toFixed(2);
 }
+
+const UpdateCarbsButton = ({
+  newCarbValue,
+  meal,
+  updateMealLocally,
+}: {
+  newCarbValue: number;
+  meal: MealDataOnly;
+  updateMealLocally: (newMeal: MealDataOnly) => void;
+}) => {
+  const [loading, setLoading] = useState(false);
+
+  const mealAdapter = { ...defaultMutateFormData(meal), carbs: newCarbValue };
+
+  const onClick = async () => {
+    setLoading(true);
+    await mutateMeal(mealAdapter, updateMealLocally, { mode: "editing", meal });
+    setLoading(false);
+  };
+
+  return (
+    <Button
+      onClick={onClick}
+      disabled={loading}
+      className="rounded-md text-center bg-orange-400 font-bold text-orange-900 mt-2 py-1 cursor-pointer hover:bg-orange-300 transition-colors w-full text-md"
+      size="lg"
+    >
+      {loading ? (
+        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+      ) : (
+        <Save className="h-4 w-4 mr-1" />
+      )}
+      {loading ? " Loading..." : ` Update Carbs to ${newCarbValue}g`}
+    </Button>
+  );
+};
+
+const UpdatePatternWithMealDialogue = ({
+  meal,
+  userData,
+  activeDialogueState,
+  runOnSuccessfulUpdate,
+}: {
+  meal: MealDataOnly;
+  userData: UserDataOnly;
+  activeDialogueState: ActiveDialogContextType;
+  runOnSuccessfulUpdate: (value: number) => InsulinSensitivityEntry[];
+}) => {
+  const [loading, setLoading] = useState(false);
+
+  const { activeDialogId, setActiveDialogId } = activeDialogueState;
+
+  const newInsulinSensitivity = (meal.carbs / meal.insulin).toFixed(2);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+
+    await updateInsulinSensitivity(
+      {
+        value: parseFloat(newInsulinSensitivity),
+      },
+      userData,
+      runOnSuccessfulUpdate
+    );
+
+    setLoading(false);
+    setActiveDialogId(null);
+  };
+
+  return (
+    <Dialog
+      key={`dialog_update_pattern_${meal._id}`}
+      open={activeDialogId === `update_pattern_for_${meal._id}`}
+      onOpenChange={(open) => {
+        setActiveDialogId(open ? `update_pattern_for_${meal._id}` : null);
+      }}
+    >
+      <DialogTrigger className="absolute right-16 top-4 z-30 cursor-pointer hover:scale-105 transition-transform">
+        <div className="bg-zinc-800 p-3 rounded-md">
+          <Droplets color="white" size={16} />
+        </div>
+      </DialogTrigger>
+      <DialogContent
+        showCloseButton={false}
+        className="p-0 m-0 border-none bg-transparent"
+      >
+        <DialogClose asChild disabled={loading}>
+          <button className="absolute right-4 top-4 rounded-md p-2  cursor-pointer">
+            <X className="h-4 w-4 text-zinc-500" />
+          </button>
+        </DialogClose>
+        <DialogHeader className="hidden">
+          <DialogTitle></DialogTitle>
+          <DialogDescription></DialogDescription>
+        </DialogHeader>
+        <div className="rounded-md overflow-y-scroll max-h-screen bg-zinc-900 text-zinc-100 p-8 ">
+          <p className="text-2xl font-medium">
+            Use this food to update insulin sensitivity to{" "}
+            <span className="font-bold">{newInsulinSensitivity}u?</span>
+            <Button
+              onClick={handleConfirm}
+              disabled={loading}
+              className="rounded-md text-center bg-green-500 font-medium text-green-950 mt-2 py-1 cursor-pointer hover:bg-green-600 transition-colors w-full text-[18px]"
+              size="lg"
+            >
+              {loading ? (
+                <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              {loading ? " Loading..." : ` Update to ${newInsulinSensitivity}u`}
+            </Button>
+            <Button
+              disabled={loading}
+              onClick={() => setActiveDialogId(null)}
+              className="rounded-md text-center bg-zinc-800 font-medium text-zinc-300 mt-2 py-1 cursor-pointer hover:bg-zinc-700 transition-colors w-full text-[18px]"
+              size="lg"
+            >
+              Close
+            </Button>
+          </p>
+          <p></p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

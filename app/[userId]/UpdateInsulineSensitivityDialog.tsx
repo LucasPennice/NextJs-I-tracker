@@ -25,37 +25,37 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useUserDataContext } from "../context";
 
-export function UpdateInsulineSensitivityDialog({
+const formSchema = z.object({
+  value: z
+    .number()
+    .min(1, "Must be a positive number greater than 0")
+    .max(100, "Cannot exceed 100 units")
+    .refine(
+      (val) => {
+        const decimalPart = val.toString().split(".")[1];
+        return !decimalPart || decimalPart.length <= 4;
+      },
+      {
+        message: "Maximum of 4 decimal places allowed",
+      }
+    ),
+});
+
+export function UpdateInsulinSensitivityDialog({
   item,
-  updateInsulinSensitivity,
+  runOnSuccessfulUpdate,
   close,
   open,
   setActiveDialogId,
 }: {
   item?: InsulinSensitivityEntry;
-  updateInsulinSensitivity: (value: number) => InsulinSensitivityEntry[];
+  runOnSuccessfulUpdate: (value: number) => InsulinSensitivityEntry[];
   setActiveDialogId: (value: string | null) => void;
   close: () => void;
   open: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const { userData } = useUserDataContext();
-
-  const formSchema = z.object({
-    value: z
-      .number()
-      .min(1, "Must be a positive number greater than 0")
-      .max(100, "Cannot exceed 100 units")
-      .refine(
-        (val) => {
-          const decimalPart = val.toString().split(".")[1];
-          return !decimalPart || decimalPart.length <= 4;
-        },
-        {
-          message: "Maximum of 4 decimal places allowed",
-        }
-      ),
-  });
 
   const [formData, setFormData] = useState<z.infer<typeof formSchema>>({
     value: item?.value ?? 0,
@@ -73,34 +73,9 @@ export function UpdateInsulineSensitivityDialog({
 
     e.preventDefault();
 
-    const parse = formSchema.safeParse(formData);
+    await updateInsulinSensitivity(formData, userData, runOnSuccessfulUpdate);
 
-    if (parse.success === false) {
-      const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
-
-      for (const issue of issues) {
-        toast.warning(issue);
-      }
-
-      setLoading(false);
-
-      return;
-    }
-
-    try {
-      if (!userData) throw new Error("User data not found");
-
-      const updatedHistorical = updateInsulinSensitivity(formData.value);
-
-      await editInsulinSensitivity(userData._id, {
-        historialInsulinSensitivity: updatedHistorical,
-        insulinSensitivity: formData.value,
-      });
-    } catch (error) {
-      toast.error(`${error}`);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
 
     close();
   }
@@ -208,4 +183,35 @@ async function editInsulinSensitivity(
   }
 
   return await res.json();
+}
+
+export async function updateInsulinSensitivity(
+  formData: z.infer<typeof formSchema>,
+  userData: UserDataOnly,
+  runOnSuccessfulUpdate: (value: number) => InsulinSensitivityEntry[]
+) {
+  try {
+    const parse = formSchema.safeParse(formData);
+
+    if (parse.success === false) {
+      const issues = parse.error.issues.map((e) => `${e.path}: ${e.message}`);
+
+      for (const issue of issues) {
+        toast.warning(issue);
+      }
+
+      return;
+    }
+
+    if (!userData) throw new Error("User data not found");
+
+    const updatedHistorical = runOnSuccessfulUpdate(formData.value);
+
+    await editInsulinSensitivity(userData._id, {
+      historialInsulinSensitivity: updatedHistorical,
+      insulinSensitivity: formData.value,
+    });
+  } catch (error) {
+    toast.error(`${error}`);
+  }
 }

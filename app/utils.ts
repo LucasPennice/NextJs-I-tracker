@@ -1,6 +1,8 @@
 export function checkInsulinMissmatch(a: number, b: number): boolean {
   const diff = Math.abs(a - b);
 
+  if (diff <= 1) return false;
+
   if (a <= 6 && b <= 6) {
     return diff > 1;
   } else if (a <= 13 && b <= 13) {

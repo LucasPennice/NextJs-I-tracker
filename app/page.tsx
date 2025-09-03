@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-
+import Image from "next/image";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
@@ -72,11 +72,8 @@ export default function AuthPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-green-600 rounded-full">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
+            <Image height={36} width={240} src={"/logo.png"} alt={"logo"} />
           </div>
-          <h1 className="text-3xl font-bold text-white">Meal Tracker</h1>
         </div>
 
         {/* Mode Toggle */}

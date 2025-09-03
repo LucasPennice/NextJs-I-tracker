@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -54,6 +54,9 @@ import {
 import { checkInsulinMissmatch } from "../utils";
 import { MutateFoodForm } from "./MutateFoodForm";
 import { UpdateInsulineSensitivityDialog } from "./UpdateInsulineSensitivityDialog";
+import { Badge } from "../../components/ui/badge";
+import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
+import clsx from "clsx";
 
 const chartConfig = {
   desktop: {
@@ -70,6 +73,9 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
   const { activeDialogId, setActiveDialogId } = useActiveDialogContext();
   const { query } = useQueryContext();
   const { setUserData } = useUserDataContext();
+  const [excerciseTiming, setExcerciseTiming] = useState<
+    null | "Last6Hours" | "Last12Hours" | "Last24Hours"
+  >(null);
 
   const fuse = useMemo(
     () =>
@@ -263,6 +269,62 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
+
+              <div className="bg-zinc-900 rounded-lg flex flex-col sm:flex-row justify-around items-center gap-8 sm:gap-2 p-4 mt-4">
+                <NumberFlowGroup>
+                  <div className="flex-1/3 flex flex-col items-center">
+                    <NumberFlow
+                      className="text-white font-black text-[76px] sm:text-[96px]"
+                      value={getExcercisedAffectedSensitivity(
+                        userData.historialInsulinSensitivity.findLast((x) => x)
+                          .value,
+                        excerciseTiming
+                      )}
+                      suffix="u"
+                    />
+                    <NumberFlow
+                      className="text-blue-400 font-bold bg-blue-900/50 w-fit px-4 rounded-2xl py-1"
+                      value={getExcerciseSensitivityMod(excerciseTiming)}
+                      format={{
+                        maximumFractionDigits: 0,
+                        signDisplay: "always",
+                      }}
+                      suffix="%"
+                    />
+                  </div>
+                </NumberFlowGroup>
+
+                <div className="p-2 flex-2/3">
+                  <p className="text-zinc-400 font-bold text-md sm:text-2xl">
+                    I EXCERCISED IN THE...
+                  </p>
+
+                  <SelectExcerciseOption
+                    text="Last 6 hours"
+                    subtext={`Since ${getTimeStringWithSubtractedHours(6)}`}
+                    onClick={() => setExcerciseTiming("Last6Hours")}
+                    active={excerciseTiming === "Last6Hours"}
+                  />
+                  <SelectExcerciseOption
+                    text="Last 12 hours"
+                    subtext={`Since ${getTimeStringWithSubtractedHours(12)}`}
+                    onClick={() => setExcerciseTiming("Last12Hours")}
+                    active={excerciseTiming === "Last12Hours"}
+                  />
+                  <SelectExcerciseOption
+                    text="Last 24 hours"
+                    subtext={`Since ${getTimeStringWithSubtractedHours(24)}`}
+                    onClick={() => setExcerciseTiming("Last24Hours")}
+                    active={excerciseTiming === "Last24Hours"}
+                  />
+                  <SelectExcerciseOption
+                    text="I haven't excercise in at least 24 hours"
+                    subtext={`Since ${getTimeStringWithSubtractedHours(24)}`}
+                    onClick={() => setExcerciseTiming(null)}
+                    active={excerciseTiming === null}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -292,8 +354,16 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                 new Date(a.updatedAt).getTime()
             )
             .map((meal) => {
+              const baselineSensitivity = userData.insulinSensitivity;
+              const excerciseAffectedSensitivity = parseFloat(
+                getExcercisedAffectedSensitivity(
+                  baselineSensitivity,
+                  excerciseTiming
+                )
+              );
+
               const estimatedInsulin = (
-                meal.carbs / userData.insulinSensitivity
+                meal.carbs / excerciseAffectedSensitivity
               ).toFixed(4);
 
               const insulinMissmatch = checkInsulinMissmatch(
@@ -461,3 +531,55 @@ const entryAlredyInToday = (
 
   return true;
 };
+
+const SelectExcerciseOption = ({
+  onClick,
+  active,
+  text,
+  subtext,
+}: {
+  onClick: () => void;
+  active: boolean;
+  text: string;
+  subtext: string;
+}) => {
+  return (
+    <button
+      className={`bg-zinc-800 text-white px-4 py-2 rounded-md mt-2 w-full flex gap-4 items-center cursor-pointer border-1 border-zinc-800 transition-colors hover:border-green-900`}
+      onClick={onClick}
+    >
+      <div
+        className={`${
+          active ? "bg-green-400" : "bg-zinc-600"
+        } min-w-4 h-4 rounded-full transition-colors`}
+      />
+      <div className="flex flex-col items-start text-md sm:text-xl font-bold text-left">
+        {text}
+        <p className="font-normal opacity-50">{subtext}</p>
+      </div>
+    </button>
+  );
+};
+
+function getTimeStringWithSubtractedHours(hours: number) {
+  return new Date(
+    new Date().getTime() - hours * 60 * 60 * 1000
+  ).toLocaleString();
+}
+
+function getExcerciseSensitivityMod(value: string | null): number {
+  if (value === null) return 0;
+  if (value === "Last6Hours") return 20;
+  if (value === "Last12Hours") return 12;
+  if (value === "Last24Hours") return 7;
+}
+
+function getExcercisedAffectedSensitivity(
+  baseSensitivity: number,
+  excerciseTiming: string | null
+) {
+  return (
+    ((100 - getExcerciseSensitivityMod(excerciseTiming)) * baseSensitivity) /
+    100
+  ).toFixed(2);
+}

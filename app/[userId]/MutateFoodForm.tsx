@@ -17,7 +17,7 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Progress } from "../../components/ui/progress";
-import { Meal, MealDataOnly } from "../../entities/Meal";
+import { MealDataOnly } from "../../entities/Meal";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -116,7 +116,7 @@ export const MutateFoodForm = ({
         imageUrl: uploadResponse.filePath ?? null,
       }));
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = () => {
         // setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
@@ -247,7 +247,7 @@ export const MutateFoodForm = ({
 
                   <div>
                     <Label htmlFor="carbs" className="text-zinc-300">
-                      Carbohydrates (g) (leave empty if don't know)
+                      Carbohydrates (g) (leave empty if don&apos;t know)
                     </Label>
                     <Input
                       id="carbs"

@@ -1,5 +1,6 @@
 "use client";
 import { Image, ImageKitProvider } from "@imagekit/next";
+import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
 import { DialogClose } from "@radix-ui/react-dialog";
 import Fuse from "fuse.js";
 import {
@@ -25,10 +26,10 @@ import {
   XAxis,
 } from "recharts";
 import { toast } from "sonner";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
@@ -64,10 +65,6 @@ import {
   UpdateInsulinSensitivityDialog,
   updateInsulinSensitivity,
 } from "./UpdateInsulineSensitivityDialog";
-import { Badge } from "../../components/ui/badge";
-import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
-import clsx from "clsx";
-import { Button } from "../../components/ui/button";
 
 const chartConfig = {
   desktop: {

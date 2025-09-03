@@ -625,8 +625,8 @@ function getExcercisedAffectedSensitivity(
   excerciseTiming: string | null
 ) {
   return (
-    ((100 - getExcerciseSensitivityMod(excerciseTiming)) * baseSensitivity) /
-    100
+    100 -
+    (baseSensitivity * 100) / getExcerciseSensitivityMod(excerciseTiming)
   ).toFixed(2);
 }
 

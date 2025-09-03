@@ -15,7 +15,7 @@ import { MealDataOnly } from "../../entities/Meal";
 import { Image, ImageKitProvider, upload } from "@imagekit/next";
 import imageCompression from "browser-image-compression";
 import { Droplet, RefreshCw, Save, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { v4 } from "uuid";
 import { z } from "zod";
@@ -26,12 +26,14 @@ export const MutateFoodForm = ({
   meal,
   mutateMeal,
   mode,
+  userBaselineSensitivity,
 }: {
   userId: string;
   close: () => void;
   meal?: MealDataOnly;
   mutateMeal: (newMeal: MealDataOnly) => void;
   mode: "adding" | "editing";
+  userBaselineSensitivity: number;
 }) => {
   const formSchema = z.object({
     name: z.string().min(2).max(50),
@@ -199,7 +201,6 @@ export const MutateFoodForm = ({
                   <input
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
@@ -218,15 +219,8 @@ export const MutateFoodForm = ({
             </Card>
             {/* Main Information */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Insulin Information */}
               <Card className="bg-zinc-800 border-zinc-700">
-                <CardHeader>
-                  <CardTitle className="text-white">
-                    Basic Information
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    Enter the basic details about your food item
-                  </CardDescription>
-                </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="name" className="text-zinc-300">
@@ -235,66 +229,25 @@ export const MutateFoodForm = ({
                     <Input
                       id="name"
                       value={formData.name}
+                      style={{
+                        fontSize: 24,
+                        padding: "24px 16px",
+                      }}
                       onChange={(e) =>
                         handleInputChange("name", e.target.value)
                       }
+                      onFocus={scrollOnFocus}
                       placeholder="e.g., Grilled Chicken Salad"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                      className="bg-zinc-900/50 border-none text-white font-bold"
                       required
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="description" className="text-zinc-300">
-                      Description
-                    </Label>
-                    <Textarea
-                      id="description"
-                      value={`${formData.description}`}
-                      onChange={(e) =>
-                        handleInputChange("description", e.target.value)
-                      }
-                      placeholder="Describe the food item, ingredients, or preparation method..."
-                      className="bg-zinc-900 border-zinc-700 text-white min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="carbs" className="text-zinc-300">
-                        Carbohydrates (g) *
-                      </Label>
-                      <Input
-                        id="carbs"
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        value={formData.carbs}
-                        onChange={(e) =>
-                          handleInputChange("carbs", parseFloat(e.target.value))
-                        }
-                        placeholder="30"
-                        className="bg-zinc-900 border-zinc-700 text-white"
-                        required
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Insulin Information */}
-              <Card className="bg-zinc-800 border-zinc-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-white flex items-center gap-2 mt-8">
                     <Droplet className="h-5 w-5 text-green-400" />
                     Insulin Estimation
                   </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    How much insulin you think you need for this food item, you
-                    can edit later
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+
                   <div className="flex-1">
                     <Label htmlFor="insulin" className="text-zinc-300">
                       Insulin Units Required *
@@ -302,14 +255,53 @@ export const MutateFoodForm = ({
                     <Input
                       id="insulin"
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       min={0}
+                      onFocus={scrollOnFocus}
                       value={formData.insulin}
                       onChange={(e) =>
                         handleInputChange("insulin", parseFloat(e.target.value))
                       }
+                      onBlur={() => {
+                        console.log(userBaselineSensitivity);
+
+                        handleInputChange(
+                          "carbs",
+                          formData.insulin * userBaselineSensitivity
+                        );
+                      }}
                       placeholder="2.5"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                      style={{
+                        fontSize: 24,
+                        padding: "24px 16px",
+                      }}
+                      className="bg-zinc-900/50 border-none text-white font-bold"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="carbs" className="text-zinc-300">
+                      Carbohydrates (g) *
+                    </Label>
+                    <Input
+                      id="carbs"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      min={0}
+                      value={formData.carbs}
+                      onFocus={scrollOnFocus}
+                      onChange={(e) =>
+                        handleInputChange("carbs", parseFloat(e.target.value))
+                      }
+                      placeholder="30"
+                      style={{
+                        fontSize: 24,
+                        padding: "24px 16px",
+                      }}
+                      className="bg-zinc-900/50 border-none text-white font-bold"
                       required
                     />
                   </div>
@@ -407,3 +399,13 @@ const imageUploadAuthenticator = async () => {
     throw new Error("Authentication request failed");
   }
 };
+
+function scrollOnFocus(e) {
+  // Small delay lets keyboard open first
+  setTimeout(() => {
+    e.target.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, 300);
+}

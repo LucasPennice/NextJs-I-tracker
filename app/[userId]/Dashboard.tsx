@@ -355,6 +355,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
             )
             .map((meal) => {
               const baselineSensitivity = userData.insulinSensitivity;
+
               const excerciseAffectedSensitivity = parseFloat(
                 getExcercisedAffectedSensitivity(
                   baselineSensitivity,
@@ -407,6 +408,7 @@ export default function Dashboard({ userData }: { userData: UserDataOnly }) {
                         close={() => setActiveDialogId(null)}
                         meal={meal}
                         mutateMeal={updateMeal}
+                        userBaselineSensitivity={baselineSensitivity}
                       />
                     </DialogContent>
                   </Dialog>

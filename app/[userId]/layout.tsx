@@ -133,6 +133,7 @@ export default function RootLayout({
                   userId={userData._id}
                   close={() => setActiveDialogId(null)}
                   mutateMeal={addNewMeal}
+                  userBaselineSensitivity={userData.insulinSensitivity}
                 />
               </DialogContent>
             </Dialog>

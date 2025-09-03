@@ -615,9 +615,9 @@ function getTimeStringWithSubtractedHours(hours: number) {
 
 function getExcerciseSensitivityMod(value: string | null): number {
   if (value === null) return 0;
-  if (value === "Last6Hours") return 20;
-  if (value === "Last12Hours") return 12;
-  if (value === "Last24Hours") return 7;
+  if (value === "Last6Hours") return 25;
+  if (value === "Last12Hours") return 17;
+  if (value === "Last24Hours") return 12;
 }
 
 function getExcercisedAffectedSensitivity(
